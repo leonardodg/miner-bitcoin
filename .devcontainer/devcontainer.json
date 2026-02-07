@@ -1,0 +1,43 @@
+{
+  "name": "Miner Bitcoin with Python by LeoDG",
+  "dockerComposeFile": "./docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspace",
+  "remoteUser": "vscode",
+  "features": {
+	"ghcr.io/devcontainers-extra/features/uv:1": {},
+	"ghcr.io/devcontainers/features/common-utils:2": {
+		"installZsh": true,
+		"installOhMyZsh": true,
+		"installOhMyZshConfig": true,
+		"upgradePackages": true,
+		"installSsl": true,
+		"username": "devcontainer",
+		"userUid": "automatic",
+		"userGid": "automatic"
+	},
+	"ghcr.io/stuartleeks/dev-container-features/shell-history:0": {}
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "charliermarsh.ruff",
+        "ms-python.mypy-type-checker",
+        "ms-toolsai.jupyter"
+      ],
+      "settings": {
+          "python.defaultInterpreterPath": "/usr/local/bin/python"
+      }
+    }
+  },
+  "remoteEnv": {
+    "PROJECT_NAME": "Miner Bitcoin with Python by LeoDG",
+    "PYTHON_VERSION": "3.13",
+    "UV_INIT_BARE": "true",
+    "INSTALL_IPYKERNEL": "true"
+  },
+  "postCreateCommand": "make post-create",
+  "mounts": []
+}
