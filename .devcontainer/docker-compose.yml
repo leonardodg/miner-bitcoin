@@ -3,6 +3,8 @@ version: '3.8'
 services:
   app:
     build: .
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     image: python_playground
     container_name: python_playground
     volumes:

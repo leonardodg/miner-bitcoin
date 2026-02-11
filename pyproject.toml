@@ -2,7 +2,12 @@
 name = "workspace"
 version = "0.1.0"
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "asyncio>=4.0.0",
+    "bitcoinrpc>=0.7.0",
+    "python-dotenv>=1.2.1",
+    "requests>=2.32.5",
+]
 
 [dependency-groups]
 dev = [
