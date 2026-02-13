@@ -16,8 +16,7 @@ config = dotenv_values("env/BitcoinRPC.env")
 
 class BitcoinRPCClient:
     """
-    Client async to comunication with Bitcoin via JSON-RPC.
-    It provides methods to interact with the Bitcoin network, such as getting block information, sending transactions, and more. The client is designed to be used in an asynchronous context, allowing for efficient handling of multiple requests without blocking the main thread.
+    Client async to comunication with BitcoinRPC.
 
     Implementation the pattern Wrapper on the BitcoinRPC library with manager automatic concection through context manager.
 
