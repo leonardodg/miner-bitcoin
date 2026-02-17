@@ -4,7 +4,6 @@
 BitcoinCorelient is an asynchronous client for communicating with a Bitcoin Core node via JSON-RPC.
 """
 
-import asyncio
 import base64
 from typing import Any, Optional
 
@@ -76,7 +75,7 @@ class BitcoinCoreClient:
             await self._session.close()
             self._session = None
 
-    async def _handle_request(self, method: str, **kwargs) -> dict[str, Any]:
+    async def _handle_request(self, method: str, *args, **kwargs) -> dict[str, Any]:
         """
         Internal method to perform an asynchronous RPC call to the Bitcoin Core node.
 
@@ -92,14 +91,18 @@ class BitcoinCoreClient:
                 "Client session is not initialized. Use 'async with' to manage the connection."
             )
 
+        params = list(args) if args else []
+        params = [{key: val for key, val in kwargs.items()}] if len(kwargs) else params
+
         payload = {
             "jsonrpc": "2.0",
             "method": method,
-            "params": [{key: val for key, val in kwargs.items()}] if kwargs else [],
+            "params": params,
             "id": "miner-python-client",
         }
 
-        print(f"Making RPC call: {method} with params: {kwargs}")
+        # print(f"Preparing RPC call: {method} with args: {args} and kwargs: {kwargs}")
+        # print(f"Making RPC call: {method} with params: {payload['params']}")
 
         try:
             async with self._session.post(self._url, json=payload) as response:
@@ -123,6 +126,20 @@ class BitcoinCoreClient:
 
         return await self._handle_request("getblocktemplate", **params)
 
+    async def getblock(self, hash: str) -> dict[str, Any]:
+        """
+        Get a block by its hash from the Bitcoin Core node.
+
+        :param hash: The hash of the block to retrieve
+        :type hash: str
+        :return: The block information
+        :rtype: dict[str, Any]
+        """
+
+        params = [hash]
+
+        return await self._handle_request("getblock", *params)
+
     async def getblockcount(self) -> int:
         """
         Get the current block count from the Bitcoin Core node.
@@ -135,28 +152,163 @@ class BitcoinCoreClient:
             return int(result)
         raise RuntimeError(f"Unexpected result type for getblockcount: {type(result)}")
 
+    async def getmininginfo(self) -> dict[str, Any]:
+        """
+        Get info about mining from the Bitcoin Core node.
 
-async def main() -> None:
-    async with BitcoinCoreClient() as client:
-        try:
-            template = await client.getblocktemplate()
-            # Analyse the data more important in the template, for example:
-            print("--- New Template of Miner ---")
-            print(f"Difficulty (Bits): {template['bits']}")
-            print(f"Hash Previous: {template['previousblockhash']}")
-            print(f"Reward (Coinbase): {template['coinbasevalue']} Satoshis")
-            print(f"Number of Transactions: {len(template['transactions'])}")
+        Command:
+            bitcoin-cli getmininginfo
 
-            # Here, you can iterate in transactions to see the fees
-            top_fee = max(tx["fee"] for tx in template["transactions"])
-            print(f"Bigger tax found in block: {top_fee} sats")
+        :return: The mining information
+        :rtype: dict[str, Any]
 
-            # Show the current block count
-            bloco_count = await client.getblockcount()
-            print(f"Current block count: {bloco_count}")
-        except Exception as e:
-            print(f"Error fetching block template: {e}")
+        Return Example Real Data:
+                    {
+                        "blocks": 936447,
+                        "currentblockweight": 3999798,
+                        "currentblocktx": 2804,
+                        "bits": "17023c7e",
+                        "difficulty": 125864590119494.3,
+                        "target": "000000000000000000023c7e0000000000000000000000000000000000000000",
+                        "networkhashps": 1.017155175832009e+21,
+                        "pooledtx": 7756,
+                        "blockmintxfee": 0.00000001,
+                        "chain": "main",
+                        "next": {
+                            "height": 936448,
+                            "bits": "17023c7e",
+                            "difficulty": 125864590119494.3,
+                            "target": "000000000000000000023c7e0000000000000000000000000000000000000000"
+                        },
+                        "warnings": []
+                    }
+        """
 
+        return await self._handle_request("getmininginfo")
 
-if __name__ == "__main__":
-    asyncio.run(main())
+    async def getdifficulty(self) -> float:
+        """
+        Get info about difficulty to mine from the Bitcoin Core node.
+
+        :return: The mining difficulty
+        :rtype: float
+
+        Return Example Real Data:
+            125864590119494.3
+        """
+
+        result = await self._handle_request("getdifficulty")
+        if isinstance(result, (int, float)):
+            return float(result)
+        raise RuntimeError(f"Unexpected result type for getdifficulty: {type(result)}")
+
+    async def getnetworkhashps(self, num_blocks: int = 120) -> float:
+        """
+        Get info about network hash rate from the Bitcoin Core node.
+
+        :param num_blocks: The number of blocks to consider for the network hash rate calculation
+        :type num_blocks: int
+        :return: The network hash rate
+        :rtype: float
+
+        Return Example Real Data:
+            1.035436076823005e+21
+        """
+
+        result = await self._handle_request("getnetworkhashps", num_blocks)
+        if isinstance(result, (int, float)):
+            return float(result)
+        raise RuntimeError(
+            f"Unexpected result type for getnetworkhashps: {type(result)}"
+        )
+
+    async def getblockheader(self, hash: str, verbose: bool = True) -> dict[str, Any]:
+        """
+        Get info block header info from the Bitcoin Core node.
+
+        :param hash: The hash of the block header to retrieve
+        :type hash: str
+        :param verbose: Whether to return a verbose block header (default: True)
+        :type verbose: bool
+        :return: The block header information
+        :rtype: dict[str, Any]
+
+        Return Example Real Data:
+                {
+                    "hash": "00000000000000000000e19ae97655f89c430a301d6aa66bf6ab000bd2682524",
+                    "confirmations": 29,
+                    "height": 936421,
+                    "version": 536903680,
+                    "versionHex": "20008000",
+                    "merkleroot": "1c9626b03ff111682c75a88db62b436f0d7431e620bb08d7213816a4d62b9493",
+                    "time": 1771009676,
+                    "mediantime": 1771008595,
+                    "nonce": 1236749238,
+                    "bits": "17023c7e",
+                    "target": "000000000000000000023c7e0000000000000000000000000000000000000000",
+                    "difficulty": 125864590119494.3,
+                    "chainwork": "00000000000000000000000000000000000000010ef055be496a8b1f9a962eb4",
+                    "nTx": 3160,
+                    "previousblockhash": "000000000000000000012b88e14747c72b54afa7ba43874770c426fea98d2589",
+                    "nextblockhash": "000000000000000000001a8c388b54f78f7c8ba95ced9fd2b517c9703e8cc91b"
+                }
+
+                or
+
+                0080002089258da9fe26c470478743baa7af542bc74747e1882b0100000000000000000093942bd6a4163821d708bb20e631740d6f432bb68da8752c6811f13fb026961c8c768f697e3c0217b64bb749
+
+        """
+
+        return await self._handle_request("getblockheader", hash, verbose)
+
+    async def getblockchaininfo(self) -> dict[str, Any]:
+        """
+        Get info about the blockchain from the Bitcoin Core node.
+
+        Command:
+            bitcoin-cli getblockchaininfo
+
+        :return: The blockchain information
+        :rtype: dict[str, Any]
+
+        Return Example Real Data:
+                    {
+                        "chain": "main",
+                        "blocks": 936451,
+                        "headers": 936451,
+                        "bestblockhash": "000000000000000000023577445bc9d681c4aa2935e66872687fd5273df8477a",
+                        "bits": "17023c7e",
+                        "target": "000000000000000000023c7e0000000000000000000000000000000000000000",
+                        "difficulty": 125864590119494.3,
+                        "time": 1771024690,
+                        "mediantime": 1771022195,
+                        "verificationprogress": 1,
+                        "initialblockdownload": false,
+                        "chainwork": "00000000000000000000000000000000000000010efdbffdb52e1b1f366bcc98",
+                        "size_on_disk": 1951247175,
+                        "pruned": true,
+                        "pruneheight": 935502,
+                        "automatic_pruning": true,
+                        "prune_target_size": 1999634432,
+                        "warnings": []
+                    }
+
+        """
+
+        return await self._handle_request("getblockchaininfo")
+
+    async def getblockhash(self, height: int) -> dict[str, Any]:
+        """
+        Get info about the blockchain from the Bitcoin Core node.
+
+        Command:
+            bitcoin-cli getblockhash <height>
+
+        :return: The blockchain information
+        :rtype: dict[str, Any]
+
+        Return Example Real Data:
+            00000000000000000000e19ae97655f89c430a301d6aa66bf6ab000bd2682524
+        """
+
+        return await self._handle_request("getblockhash", height)
